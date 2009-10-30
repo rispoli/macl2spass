@@ -3,12 +3,12 @@
          (prefix-in : parser-tools/lex-sre)
          syntax/readerr)
 
-(define-tokens value-tokens (PROP_ATOM MODE))
+(define-tokens value-tokens (PROP_ATOM MODE BOOL))
 (define-empty-tokens op-tokens (EOF LPAREN RPAREN NOT AMPERAMPER BARBAR MINUSGREATER BOX COMMA LIST_OF_FORMULAE DOT END_OF_LIST))
 
 (define-lex-abbrevs
-  ;(comment (:or (:: "//" (:* (:~ #\newline)) #\newline) (:: "/*" (complement (:: any-string "*/" any-string)) "*/"))) ; C style
-  (comment (:: "(*" (complement (:: any-string "*)" any-string)) "*)")) ; OCaml style
+  (comment (:or (:: "//" (:* (:~ #\newline)) #\newline) (:: "/*" (complement (:: any-string "*/" any-string)) "*/"))) ; C style
+  ;(comment (:: "(*" (complement (:: any-string "*)" any-string)) "*)")) ; OCaml style
   (lower-letter (:/ "a" "z"))
   (upper-letter (:/ #\A #\Z))
   (digit (:/ "0" "9")))
@@ -17,23 +17,25 @@
   (lexer-src-pos
     ((eof) 'EOF)
     ((:or comment #\newline #\return #\tab #\space #\vtab) (return-without-pos (dsll input-port)))
+    ("true" (token-BOOL 'true))
+    ("false" (token-BOOL 'false))
     ("(" 'LPAREN)
     (")" 'RPAREN)
     ("not" 'NOT)
     ("&&" 'AMPERAMPER)
     ("||" 'BARBAR)
     ("->" 'MINUSGREATER)
-    ("box" 'BOX)
+    ("[]" 'BOX)
     ("," 'COMMA)
     ("list_of_formulae" 'LIST_OF_FORMULAE)
-    ("axioms" (token-MODE "axioms"))
-    ("conjectures" (token-MODE "conjectures"))
+    ("axioms" (token-MODE 'axioms))
+    ("conjectures" (token-MODE 'conjectures))
     ("." 'DOT)
     ("end_of_list" 'END_OF_LIST)
     ((:: (:+ (:or lower-letter upper-letter)) (:* (:or lower-letter upper-letter "_" digit))) (token-PROP_ATOM (string->symbol lexeme)))))
 
 (define dslp
-  (lambda (source-name)
+  (lambda (source-name interpretation initial-world)
     (parser
       (src-pos)
       (start start)
@@ -58,38 +60,59 @@
         (start (() #f)
                ((toplevel) $1))
         (expr ((simple-expr) $1)
-              ((NOT expr) (format "not(~a)" $2))
-              ((expr AMPERAMPER expr) (format "and(~a, ~a)" $1 $3))
-              ((expr BARBAR expr) (format "or(~a, ~a)" $1 $3))
-              ((expr MINUSGREATER expr) (format "implies(~a, ~a)" $1 $3))
-              ((BOX LPAREN expr COMMA expr RPAREN) (format "box(~a, ~a)" $3 $5)))
+              ((NOT expr) (let ((new-world (gensym "w")))
+                            `(forall ,new-world (implies
+                                                  (leq ,initial-world ,new-world)
+                                                  (not ,(update-world initial-world new-world interpretation $2))))))
+              ((expr AMPERAMPER expr) `(and ,$1 ,$3))
+              ((expr BARBAR expr) `(or ,$1 ,$3))
+              ((expr MINUSGREATER expr) (let ((new-world (gensym "w")))
+                                          `(forall ,new-world (implies
+                                                                (and (leq ,initial-world ,new-world) ,(update-world initial-world new-world interpretation $1))
+                                                                ,(update-world initial-world new-world interpretation $3)))))
+              ((BOX LPAREN PROP_ATOM COMMA expr RPAREN) (let ((new-world (gensym "w")))
+                                                          `(forall ,new-world (implies
+                                                                                (R ,$3 ,initial-world ,new-world)
+                                                                                ,(update-world initial-world new-world interpretation $5))))))
         (expr-list ((expr-list DOT expr) (cons $3 $1))
                    ((expr) (list $1))
                    ((expr-list DOT) $1)
                    (() '()))
         (mode ((MODE) $1))
-        (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list END_OF_LIST ) (format "list_of_formulae(~a).~n~a~n~nend_of_list.~n"
-                                                                                        $3
-                                                                                        (foldl string-append ""
-                                                                                               (map (lambda (s) (format "~n\tformula(~a)." s)) $5))))
-                  )
-        (simple-expr ((PROP_ATOM) (symbol->string $1)) ;; differentiate for true and false iff list_of_symbols must be generated automatically
-                     ((LPAREN expr RPAREN) (format "~a" $2))
-                     )
-        ))))
+        (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list END_OF_LIST ) (list $3 (foldl cons '()
+                                                                                                (map (lambda (s) (list 'formula s)) $5)))))
+        (simple-expr ((PROP_ATOM) (list interpretation $1 initial-world))
+                     ((BOOL) $1)
+                     ((LPAREN expr RPAREN) $2))))))
+
+(define update-world
+  (lambda (initial-world new-world interpretation code)
+    (letrec ((update-world-inner
+               (lambda (code)
+                 (cond
+                   ((or (eqv? code 'true) (eqv? code 'false)) code)
+                   ((eqv? (car code) interpretation) (list interpretation (cadr code) new-world))
+                   (else
+                     (case (car code)
+                       ((forall) (let ((initial-world new-world) (new-world (cadr code)))
+                                   `(forall ,new-world ,(update-world initial-world new-world interpretation (caddr code)))))
+                       ((leq) `(leq ,initial-world ,new-world)) ;; DO WE Really need to generate the information that we just replaced previously?? (Same for R)
+                       ((not) `(not ,(update-world-inner (cadr code))))
+                       ((R) `(R ,(cadr code) ,initial-world ,new-world))
+                       (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
+      (update-world-inner code))))
 
 (define translate
-  (lambda (s #:src-name (src-name "current-input-port"))
-    (let ((ois (open-input-string s)) (statements ""))
+  (lambda (s interpretation initial-world #:src-name (src-name "current-input-port"))
+    (let ((ois (open-input-string s)) (statements '()))
       (port-count-lines! ois)
       (letrec ((loop
                  (lambda ()
-                   (let ((r ((dslp src-name) (lambda () (dsll ois)))))
+                   (let ((r ((dslp src-name interpretation initial-world) (lambda () (dsll ois)))))
                      (when r
-                       (set! statements (string-append r statements))
+                       (set! statements (cons r statements))
                        (loop))))))
         (loop))
-      ;(reverse statements))))
       statements)))
 
 (define translate-file
@@ -97,3 +120,7 @@
     (call-with-input-file path
                           (lambda (in)
                             (translate (port->string in) #:src-name path)))))
+
+; (translate "list_of_formulae(axioms) a0. false. false. a&&b. b && d -> c -> f. c || d. ((((z) && zz))). end_of_list" 'I '0)
+; (translate "list_of_formulae(axioms) not not (not (not a || not c) -> not ((a -> a) && (b -> b))) end_of_list" 'I '0)
+;
