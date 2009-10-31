@@ -1,0 +1,25 @@
+/* comment comment comment
+ * comment comment comment
+ * comment comment comment
+ */
+
+list_of_formulae(axioms)
+
+    a && b.
+    b || c.
+    c -> d.
+    [](a, p).
+    false.
+    true.
+    true && false.
+    not a.
+    [](princ, (not a && b) -> (c || not d)) //another comment
+
+end_of_list
+
+list_of_formulae(conjectures)
+
+    a -> b -> c -> d -> not [](e, q).
+    not not not not not a.
+
+end_of_list

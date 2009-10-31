@@ -1,7 +1,8 @@
 (require parser-tools/yacc
          parser-tools/lex
          (prefix-in : parser-tools/lex-sre)
-         syntax/readerr)
+         syntax/readerr
+         scheme/string)
 
 (define-tokens value-tokens (PROP_ATOM MODE BOOL))
 (define-empty-tokens op-tokens (EOF LPAREN RPAREN NOT AMPERAMPER BARBAR MINUSGREATER BOX COMMA LIST_OF_FORMULAE DOT END_OF_LIST))
@@ -39,7 +40,7 @@
     (parser
       (src-pos)
       (start start)
-      (end EOF)
+      (end EOF END_OF_LIST)
       (tokens value-tokens op-tokens)
       (error (lambda (tok-ok? tok-name tok-value start-pos end-pos)
                (raise-read-error
@@ -73,9 +74,9 @@
                    ((expr-list DOT) $1)
                    (() '()))
         (mode ((MODE) $1))
-        (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list END_OF_LIST ) `(,$3 ,(map (lambda (s)
-                                                                                              `(formula ,(update-world initial-world initial-world assignment s)))
-                                                                                            $5))))
+        (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list) `(,$3 ,(map (lambda (e)
+                                                                                 `(formula ,(update-world initial-world initial-world assignment e)))
+                                                                               (reverse $5)))))
         (simple-expr ((PROP_ATOM) `(,assignment ,$1 ,initial-world))
                      ((BOOL) $1)
                      ((LPAREN expr RPAREN) $2))))))
@@ -108,13 +109,36 @@
                        (set! statements (cons r statements))
                        (loop))))))
         (loop))
-      statements)))
+      (reverse statements))))
 
 (define translate-file
-  (lambda (path)
+  (lambda (path assignment initial-world)
     (call-with-input-file path
                           (lambda (in)
-                            (translate (port->string in) #:src-name path)))))
+                            (translate (port->string in) assignment initial-world #:src-name path)))))
+
+(define counter
+  (let ((c 0))
+    (lambda ()
+      (set! c (+ c 1))
+      c)))
+
+(define pretty-print-spass
+  (lambda (code)
+    (cond
+      ((symbol? code) (symbol->string code))
+      ((number? code) (number->string code))
+      ((or (eqv? (car code) 'conjectures) (eqv? (car code) 'axioms)) (format "list_of_formulae(~a).~n~a~n~nend_of_list.~n~n"
+                                                                             (car code)
+                                                                             (foldr string-append
+                                                                                    ""
+                                                                                    (map (lambda (e)
+                                                                                           (pretty-print-spass e)) (list-ref code 1)))))
+      (else
+        (case (car code)
+          ((formula) (format "~n\tformula(~a, ~a)." (pretty-print-spass (list-ref code 1)) (counter)))
+          ((forall) (format "forall([~a], ~a)" (list-ref code 1) (pretty-print-spass (list-ref code 2))))
+          (else (format "~a(~a)" (car code) (string-join (map (lambda (e) (pretty-print-spass e)) (cdr code)) ", "))))))))
 
 ; (translate "list_of_formulae(axioms) a0. false. false. a&&b. b && d -> c -> f. c || d. ((((z) && zz))). end_of_list" 'I '0)
 ; (translate "list_of_formulae(axioms) not not (not (not a || not c) -> not ((a -> a) && (b -> b))) end_of_list" 'I '0)
