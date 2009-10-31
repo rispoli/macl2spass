@@ -1,0 +1,23 @@
+<BOOL> ::= true | false
+
+<MODE> ::= axioms | conjectures
+
+<PROP_ATOM> ::= [a-zA-Z]+[a-zA-Z0-9_]*
+
+<infix-op> ::= && | || | ->
+
+<expr> ::= <simple-expr>
+        |  not <expr>
+        |  <expr> <infix-op> <expr>
+        |  [](<PROP_ATOM>, <expr>)
+
+<expr-list> ::= <expr-list>. expr
+             |  <expr>
+             |  <expr-list>.
+             |  _empty_list_
+
+<toplevel> ::= list_of_formulae(<MODE>) <expr-list> end_of_list
+
+<simple-expr> ::= <PROP_ATOM>
+               |  <BOOL>
+               |  ( <expr> )
