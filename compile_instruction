@@ -1,0 +1,5 @@
+For executable dependent on current version of mzscheme:
+mzc --exe fsl2spass fsl2spass.scm
+
+For distributable executable:
+mzc --exe-dir fsl2spass_dist fsl2spass
