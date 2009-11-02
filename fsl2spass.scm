@@ -141,7 +141,7 @@
               (else
                 (case (car code)
                   ((formula) (format "~n\tformula(~a, ~a)." (pretty-print-spass (list-ref code 1)) (counter)))
-                  ((forall) (format "forall([~a], ~a)" (list-ref code 1) (pretty-print-spass (list-ref code 2))))
+                  ((forall) (format "forall([world(~a)], ~a)" (list-ref code 1) (pretty-print-spass (list-ref code 2))))
                   (else (format "~a(~a)" (car code) (string-join (map (lambda (e) (pretty-print-spass e)) (cdr code)) ", "))))))))
 
         (define main
