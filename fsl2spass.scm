@@ -1,15 +1,20 @@
 (module fsl2spass scheme
         (provide translate-file pretty-print-spass)
 
+        (define *axioms-file* "axioms.dfg")
+        (define *atoms* '())
+        (define *principals* '())
+
         (require parser-tools/yacc
                  parser-tools/lex
                  (prefix-in : parser-tools/lex-sre)
                  syntax/readerr
                  scheme/string
-                 scheme/cmdline)
+                 scheme/cmdline
+                 scheme/match)
 
         (define-tokens value-tokens (PROP_ATOM MODE BOOL))
-        (define-empty-tokens op-tokens (EOF LPAREN RPAREN NOT AMPERAMPER BARBAR MINUSGREATER BOX COMMA LIST_OF_FORMULAE DOT END_OF_LIST))
+        (define-empty-tokens op-tokens (EOF LPAREN RPAREN NOT AMPERAMPER BARBAR MINUSGREATER BOX COMMA CONTROLS EQUALSGREATER LIST_OF_FORMULAE DOT END_OF_LIST))
 
         (define-lex-abbrevs
           (comment (:or (:: "//" (:* (:~ #\newline)) #\newline) (:: "/*" (complement (:: any-string "*/" any-string)) "*/"))) ; C style
@@ -32,6 +37,8 @@
             ("->" 'MINUSGREATER)
             ("[]" 'BOX)
             ("," 'COMMA)
+            ("C" 'CONTROLS)
+            ("=>" 'EQUALSGREATER)
             ("list_of_formulae" 'LIST_OF_FORMULAE)
             ("axioms" (token-MODE 'axioms))
             ("conjectures" (token-MODE 'conjectures))
@@ -57,6 +64,7 @@
                             (position-offset start-pos)))))
 
               (precs (right MINUSGREATER)
+                     (left EQUALSGREATER)
                      (left BARBAR)
                      (left AMPERAMPER)
                      (left NOT))
@@ -65,14 +73,18 @@
                 (start (() #f)
                        ((toplevel) $1))
                 (expr ((simple-expr) $1)
-                      ((NOT expr) (let ((new-world (gensym "w")))
+                      ((NOT expr) (let ((new-world (get-world-name)))
                                     `(forall ,new-world (implies (leq) (not ,$2)))))
                       ((expr AMPERAMPER expr) `(and ,$1 ,$3))
                       ((expr BARBAR expr) `(or ,$1 ,$3))
-                      ((expr MINUSGREATER expr) (let ((new-world (gensym "w")))
+                      ((expr MINUSGREATER expr) (let ((new-world (get-world-name)))
                                                   `(forall ,new-world (implies (and (leq) ,$1) ,$3))))
-                      ((BOX LPAREN PROP_ATOM COMMA expr RPAREN) (let ((new-world (gensym "w")))
-                                                                  `(forall ,new-world (implies (R ,$3) ,$5)))))
+                      ((BOX LPAREN principal COMMA expr RPAREN) (let ((new-world (get-world-name)))
+                                                                  `(forall ,new-world (implies (R ,$3) ,$5))))
+                      ((CONTROLS LPAREN principal COMMA expr RPAREN) (let ((y (get-world-name)) (x (get-world-name)))
+                                                                       `(forall ,x (implies (and (leq) (forall ,y (implies (R ,$3) ,$5))) ,$5))))
+                      ((principal EQUALSGREATER principal) (let ((y (get-world-name)) (x (get-world-name)))
+                                                             `(forall ,x (forall ,y (implies (R ,$3) (R ,$1)))))))
                 (expr-list ((expr-list DOT expr) (cons $3 $1))
                            ((expr) (list $1))
                            ((expr-list DOT) $1)
@@ -81,9 +93,18 @@
                 (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list) `(,$3 ,(map (lambda (e)
                                                                                          `(formula ,(update-world initial-world initial-world assignment e)))
                                                                                        (reverse $5)))))
-                (simple-expr ((PROP_ATOM) `(,assignment ,$1 ,initial-world))
+                (principal ((PROP_ATOM) (begin
+                                          (set! *principals* (cons $1 *principals*))
+                                          $1)))
+                (simple-expr ((PROP_ATOM) (begin
+                                            (set! *atoms* (cons $1 *atoms*))
+                                            `(,assignment ,$1 ,initial-world)))
                              ((BOOL) $1)
                              ((LPAREN expr RPAREN) $2))))))
+
+        (define get-world-name
+          (lambda ()
+            (gensym "w")))
 
         (define update-world
           (lambda (initial-world new-world assignment code)
@@ -113,7 +134,7 @@
                                (set! statements (cons r statements))
                                (loop))))))
                 (loop))
-              (reverse statements))))
+              (list (reverse (remove-duplicates *atoms*)) (reverse (remove-duplicates *principals*)) (reverse statements)))))
 
         (define translate-file
           (lambda (path assignment initial-world)
@@ -122,7 +143,7 @@
                                     (translate (port->string in) assignment initial-world #:src-name path)))))
 
         (define counter
-          (let ((c 0))
+          (let ((c 7))
             (lambda ()
               (set! c (+ c 1))
               c)))
@@ -132,8 +153,13 @@
             (cond
               ((symbol? code) (symbol->string code))
               ((number? code) (number->string code))
-              ((or (eqv? (car code) 'conjectures) (eqv? (car code) 'axioms)) (format "list_of_formulae(~a).~n~a~n~nend_of_list.~n~n"
+              ((or (eqv? (car code) 'conjectures) (eqv? (car code) 'axioms)) (format "list_of_formulae(~a).~n~a~a~n~nend_of_list.~n~n"
                                                                                      (car code)
+                                                                                     (if (eqv? (car code) 'axioms)
+                                                                                       (call-with-input-file *axioms-file*
+                                                                                                             (lambda (in)
+                                                                                                               (port->string in)))
+                                                                                       "")
                                                                                      (foldr string-append
                                                                                             ""
                                                                                             (map (lambda (e)
@@ -143,6 +169,29 @@
                   ((formula) (format "~n\tformula(~a, ~a)." (pretty-print-spass (list-ref code 1)) (counter)))
                   ((forall) (format "forall([world(~a)], ~a)" (list-ref code 1) (pretty-print-spass (list-ref code 2))))
                   (else (format "~a(~a)" (car code) (string-join (map (lambda (e) (pretty-print-spass e)) (cdr code)) ", "))))))))
+
+        (define pretty-print-symbols
+          (lambda (symbols assignment)
+            (let ((listify (lambda (name ls)
+                             (format "~a[~a]." name (string-join (map (lambda (e)
+                                                                        (apply format "(~a, ~a)" (if (list? e)
+                                                                                                   (list (car e) (cadr e))
+                                                                                                   (list e 0)))) ls) ", ")))))
+              (format "list_of_symbols.~n~n\t~a~n\t~a~n\tsorts[atom, principal, world].~n~nend_of_list.~n~n"
+                      (listify "functions" symbols)
+                      (listify "predicates" `((,assignment 2) (R 3) (leq 2)))))))
+
+        (define pretty-print-declarations
+          (lambda (atoms principals initial-world)
+            (let ((listify (lambda (sort-name ls)
+                             (foldr string-append
+                                    ""
+                                    (map (lambda (e)
+                                           (format "~n\t~a(~a)." sort-name e)) ls)))))
+              (format "list_of_declarations.~n~a~a~n\tworld(~a).~n~nend_of_list.~n~n"
+                      (listify "atom" atoms)
+                      (listify "principal" principals)
+                      initial-world))))
 
         (define main
           (let ((assignment (make-parameter 'I)) (initial-world (make-parameter '0)))
@@ -158,4 +207,14 @@
               #:args (filename)
               (list filename (assignment) (initial-world)))))
 
-        (for-each (lambda (e) (display (pretty-print-spass e))) (apply translate-file main)))
+        ;        (for-each (lambda (e) (display (pretty-print-spass e))) (apply translate-file main)))
+
+        (match-let* (((list filename assignment initial-world) main) ((list atoms principals code) (translate-file filename assignment initial-world)))
+                    (display (format "begin_problem(problem_name).~n~nlist_of_descriptions.~n~n\tname({*Problem's name*}).~n\tauthor({*Author*}).~n\tstatus(unsatisfiable). % or satisfiable or unknown~n\tdescription({*Description*}).~n~nend_of_list.~n~n~a~a~aend_problem."
+                                     (pretty-print-symbols (append (list initial-world) atoms principals) assignment)
+                                     (pretty-print-declarations atoms principals initial-world)
+                                     (foldr string-append
+                                            ""
+                                            (map (lambda (e)
+                                                   (pretty-print-spass e))
+                                                 code))))))
