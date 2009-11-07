@@ -207,8 +207,6 @@
               #:args (filename)
               (list filename (assignment) (initial-world)))))
 
-        ;        (for-each (lambda (e) (display (pretty-print-spass e))) (apply translate-file main)))
-
         (match-let* (((list filename assignment initial-world) main) ((list atoms principals code) (translate-file filename assignment initial-world)))
                     (display (format "begin_problem(problem_name).~n~nlist_of_descriptions.~n~n\tname({*Problem's name*}).~n\tauthor({*Author*}).~n\tstatus(unsatisfiable). % or satisfiable or unknown~n\tdescription({*Description*}).~n~nend_of_list.~n~n~a~a~aend_problem."
                                      (pretty-print-symbols (append (list initial-world) atoms principals) assignment)
