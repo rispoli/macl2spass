@@ -1,0 +1,28 @@
+
+	%%% Axiomatization of partial order relation %%%
+
+	% Reflexivity
+	formula(forall([world(x)], leq(x, x)), 1).
+
+	% Antisimmetry
+	formula(forall([world(x), world(y)], implies(and(leq(x, y), leq(y, x)), equal(x, y))), 2).
+
+	% Transitivity
+	formula(forall([world(x), world(y), world(z)], implies(and(leq(x, y), leq(y, z)), leq(x, z))), 3).
+
+	% Closed assignment
+	formula(forall([atom(q1), world(t), world(s)], implies(and(I(q1, t), leq(t, s)), I(q1, s))), 4).
+
+	% Closed modality
+	formula(forall([world(t), world(s), world(z), principal(a)], implies(and(leq(t, s), R(a, s, z)), R(a, t, z))), 5).
+
+	% C4
+	%formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), exists([world(z)], and(R(a, x, z), R(a, z, y))))), 6).
+
+	% We want something more than C4
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 6).
+
+	% Unit
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 7).
+
+	%%% / %%%
