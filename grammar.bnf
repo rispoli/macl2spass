@@ -9,7 +9,9 @@
 <expr> ::= <simple-expr>
         |  not <expr>
         |  <expr> <infix-op> <expr>
-        |  [](<PROP_ATOM>, <expr>)
+        |  [](<principle>, <expr>)
+        |  C(<principle>, <expr>)
+        |  <principle> => <principle>
 
 <expr-list> ::= <expr-list>. expr
              |  <expr>
@@ -17,6 +19,8 @@
              |  _empty_list_
 
 <toplevel> ::= list_of_formulae(<MODE>) <expr-list> end_of_list
+
+<principle> ::= <PROP_ATOM>
 
 <simple-expr> ::= <PROP_ATOM>
                |  <BOOL>
