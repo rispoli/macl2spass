@@ -21,5 +21,9 @@ list_of_formulae(conjectures)
 
     a -> b -> c -> d -> not [](e, q).
     not not not not not a.
+    a => b.
+	[](a, q) -> q.
+    C(a, q).
+    [](admin, b => admin) -> b => admin.
 
 end_of_list

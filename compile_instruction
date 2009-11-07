@@ -1,3 +1,7 @@
+To execute on mzscheme:
+(include "fsl2spass.scm")
+(require 'fsl2spass) ; repeat twice in case of error
+
 For executable dependent on current version of mzscheme:
 mzc --exe fsl2spass fsl2spass.scm
 
