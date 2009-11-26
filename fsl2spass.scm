@@ -223,7 +223,7 @@
               (list filename (assignment) (initial-world)))))
 
         (match-let* (((list filename assignment initial-world) main) ((list atoms principals code) (translate-file filename assignment initial-world)))
-                    (display (format "begin_problem(problem_name).~n~nlist_of_descriptions.~n~n\tname({*Problem's name*}).~n\tauthor({*Author*}).~n\tstatus(unsatisfiable). % or satisfiable or unknown~n\tdescription({*Description*}).~n~nend_of_list.~n~n~a~a~aend_problem."
+                    (display (format "begin_problem(problem_name).~n~nlist_of_descriptions.~n~n\tname({*Problem's name*}).~n\tauthor({*Author*}).~n\tstatus(unsatisfiable). % or satisfiable or unknown~n\tdescription({*Description*}).~n~nend_of_list.~n~n~a~a~aend_problem.~n"
                                      (pretty-print-symbols (append (list initial-world) atoms principals) assignment)
                                      (pretty-print-declarations atoms principals initial-world)
                                      (foldr string-append
