@@ -1,0 +1,13 @@
+list_of_formulae(axioms)
+
+	[](A, B => A) -> B => A.
+	[](A, B => A).
+
+end_of_list
+
+
+list_of_formulae(conjectures)
+
+	B => A.
+
+end_of_list

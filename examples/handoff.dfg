@@ -1,0 +1,69 @@
+begin_problem(problem_name).
+
+list_of_descriptions.
+
+	name({*Problem's name*}).
+	author({*Author*}).
+	status(unsatisfiable). % or satisfiable or unknown
+	description({*Description*}).
+
+end_of_list.
+
+list_of_symbols.
+
+	functions[(0, 0), (B, 0), (A, 0)].
+	predicates[(I, 2), (R, 3), (leq, 2)].
+	sorts[atom, principal, world].
+
+end_of_list.
+
+list_of_declarations.
+
+	principal(B).
+	principal(A).
+	world(0).
+
+end_of_list.
+
+list_of_formulae(axioms).
+
+	%%% Axiomatization of partial order relation %%%
+
+	% Reflexivity
+	formula(forall([world(x)], leq(x, x)), 1).
+
+	% Antisimmetry
+	formula(forall([world(x), world(y)], implies(and(leq(x, y), leq(y, x)), equal(x, y))), 2).
+
+	% Transitivity
+	formula(forall([world(x), world(y), world(z)], implies(and(leq(x, y), leq(y, z)), leq(x, z))), 3).
+
+	% Closed assignment
+	formula(forall([atom(q1), world(t), world(s)], implies(and(I(q1, t), leq(t, s)), I(q1, s))), 4).
+
+	% Closed modality
+	formula(forall([world(t), world(s), world(z), principal(a)], implies(and(leq(t, s), R(a, s, z)), R(a, t, z))), 5).
+
+	% C4
+	%formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), exists([world(z)], and(R(a, x, z), R(a, z, y))))), 6).
+
+	% We want something more than C4
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 6).
+
+	% Unit
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 7).
+
+	%%% / %%%
+
+	formula(forall([world(w16)], implies(and(leq(0, w16), forall([world(w14)], implies(R(A, w16, w14), forall([world(w13)], implies(R(A, w14, w13), R(B, w14, w13)))))), forall([world(w15)], implies(R(A, w16, w15), R(B, w16, w15))))), 8).
+	formula(forall([world(w18)], implies(R(A, 0, w18), forall([world(w17)], implies(R(A, w18, w17), R(B, w18, w17))))), 9).
+
+end_of_list.
+
+list_of_formulae(conjectures).
+
+	formula(forall([world(w19)], implies(R(A, 0, w19), R(B, 0, w19))), 10).
+
+end_of_list.
+
+end_problem.
