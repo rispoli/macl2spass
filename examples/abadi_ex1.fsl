@@ -1,0 +1,13 @@
+list_of_formulae(axioms)
+
+	C(admin, df1).
+	[](admin, C(bob, df1)).
+	[](bob, df1).
+
+end_of_list
+
+list_of_formulae(conjectures)
+
+	df1.
+
+end_of_list

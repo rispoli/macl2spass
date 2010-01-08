@@ -1,0 +1,44 @@
+				Welcome to fsl2spass!
+				=====================
+
+This is the generic README file for all fsl2spass distributions, so your downloaded
+package may only contain a subset of what is described here.
+
+
+				Important Files
+				===============
+
+AUTHORS			all authors that contributed to fsl2spass
+
+axioms.dfg		the axioms used by the theorem prover
+
+examples/		folder containing several input examples and their translation
+
+fsl2spass.scm	source code of the tool
+
+grammar.bnf		a BNF-like representation of the grammar the tool recognizes
+
+Makefile		unix makefile for compiling the tool
+
+README			this file
+
+UNLICENSE		the license under which this software is released
+
+
+				Usage
+				=====
+
+Once the tool is compiled it can be run with the following command:
+
+	fsl2spass input-file > output-file
+
+where input-file is a properly written file according to the grammar in
+grammar.bnf (see examples) and output-file is the tranlation ready to be fed to
+SPASS.
+
+				Documentation
+				=============
+
+Further documentation on the options of the tool can be found with the command:
+
+	fsl2spass --help
