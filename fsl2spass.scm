@@ -83,15 +83,15 @@
                                                                   `(forall ,new-world (implies (R ,$3) ,$5))))
                       ((CONTROLS LPAREN principal COMMA expr RPAREN) (let ((y (get-world-name)) (x (get-world-name)))
                                                                        `(forall ,x (implies (and (leq) (forall ,y (implies (R ,$3) ,$5))) ,$5))))
-                      ((principal EQUALSGREATER principal) (let ((x (get-world-name)))
-                                                             `(forall ,x (implies (R ,$3) (R ,$1))))))
+                      ((principal EQUALSGREATER principal) (let ((y (get-world-name)) (x (get-world-name)))
+                                                             `(forall ,x (forall ,y (implies (and (leq-speaks-for) (R ,$3)) (R ,$1)))))))
                 (expr-list ((expr-list DOT expr) (cons $3 $1))
                            ((expr) (list $1))
                            ((expr-list DOT) $1)
                            (() '()))
                 (mode ((MODE) $1))
                 (toplevel ((LIST_OF_FORMULAE LPAREN mode RPAREN expr-list) `(,$3 ,(map (lambda (e)
-                                                                                         `(formula ,(update-world initial-world initial-world assignment e)))
+                                                                                         `(formula ,(update-world `(,initial-world ,initial-world) assignment e)))
                                                                                        (reverse $5)))))
                 (principal ((PROP_ATOM) (begin
                                           (set! *principals* (cons $1 *principals*))
@@ -107,21 +107,22 @@
             (gensym "w")))
 
         (define update-world
-          (lambda (initial-world new-world assignment code)
-            (letrec ((update-world-inner
-                       (lambda (code)
-                         (cond
-                           ((or (eqv? code 'true) (eqv? code 'false)) code)
-                           ((eqv? (car code) assignment) `(,assignment ,(cadr code) ,new-world))
-                           (else
-                             (case (car code)
-                               ((forall) (let ((initial-world new-world) (new-world (cadr code)))
-                                           `(forall ,new-world ,(update-world initial-world new-world assignment (caddr code)))))
-                               ((leq) `(leq ,initial-world ,new-world))
-                               ((not) `(not ,(update-world-inner (cadr code))))
-                               ((R) `(R ,(cadr code) ,initial-world ,new-world))
-                               (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
-              (update-world-inner code))))
+		  (lambda (worlds assignment code)
+			(match-let (((list-rest new-world initial-world other-worlds) worlds))
+					   (letrec ((update-world-inner
+								  (lambda (code)
+									(cond
+									  ((or (eqv? code 'true) (eqv? code 'false)) code)
+									  ((eqv? (car code) assignment) `(,assignment ,(cadr code) ,new-world))
+									  (else
+										(case (car code)
+										  ((forall) `(forall ,(cadr code) ,(update-world (cons (cadr code) (cons new-world (cons initial-world other-worlds))) assignment (caddr code))))
+										  ((leq) `(leq ,initial-world ,new-world))
+										  ((leq-speaks-for) `(leq ,(car other-worlds) ,initial-world))
+										  ((not) `(not ,(update-world-inner (cadr code))))
+										  ((R) `(R ,(cadr code) ,initial-world ,new-world))
+										  (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
+						 (update-world-inner code)))))
 
         (define translate
           (lambda (s assignment initial-world #:src-name (src-name "current-input-port"))

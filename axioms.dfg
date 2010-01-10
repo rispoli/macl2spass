@@ -7,9 +7,6 @@
 	% Antisimmetry
 	formula(forall([world(x), world(y)], implies(and(leq(x, y), leq(y, x)), equal(x, y))), 2).
 
-	% Transitivity
-	formula(forall([world(x), world(y), world(z)], implies(and(leq(x, y), leq(y, z)), leq(x, z))), 3).
-
 	% Closed assignment
 	formula(forall([atom(q1), world(t), world(s)], implies(and(I(q1, t), leq(t, s)), I(q1, s))), 4).
 
