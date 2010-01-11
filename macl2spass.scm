@@ -83,8 +83,8 @@
                                                                   `(forall ,new-world (implies (R ,$3) ,$5))))
                       ((CONTROLS LPAREN principal COMMA expr RPAREN) (let ((y (get-world-name)) (x (get-world-name)))
                                                                        `(forall ,x (implies (and (leq) (forall ,y (implies (R ,$3) ,$5))) ,$5))))
-                      ((principal EQUALSGREATER principal) (let ((y (get-world-name)) (x (get-world-name)))
-                                                             `(forall ,x (forall ,y (implies (and (leq-speaks-for) (R ,$3)) (R ,$1)))))))
+                      ((principal EQUALSGREATER principal) (let ((x (get-world-name)))
+                                                             `(forall ,x (implies (R ,$3) (R ,$1))))))
                 (expr-list ((expr-list DOT expr) (cons $3 $1))
                            ((expr) (list $1))
                            ((expr-list DOT) $1)
@@ -118,7 +118,6 @@
 										(case (car code)
 										  ((forall) `(forall ,(cadr code) ,(update-world (cons (cadr code) (cons new-world (cons initial-world other-worlds))) assignment (caddr code))))
 										  ((leq) `(leq ,initial-world ,new-world))
-										  ((leq-speaks-for) `(leq ,(car other-worlds) ,initial-world))
 										  ((not) `(not ,(update-world-inner (cadr code))))
 										  ((R) `(R ,(cadr code) ,initial-world ,new-world))
 										  (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
@@ -144,7 +143,7 @@
                                     (translate (port->string in) assignment initial-world #:src-name path)))))
 
         (define counter
-          (let ((c 7))
+          (let ((c 8))
             (lambda ()
               (set! c (+ c 1))
               c)))

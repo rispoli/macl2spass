@@ -13,10 +13,13 @@
 	% Closed modality
 	formula(forall([world(t), world(s), world(z), principal(a)], implies(and(leq(t, s), R(a, s, z)), R(a, t, z))), 5).
 
+	% Speaks for
+	formula(forall([world(x), world(y), principal(a), principal(b)], implies(implies(R(a, x, y), R(b, x, y)), forall([world(s), world(z)], implies(leq(x, s), implies(R(a, s, z), R(b, s, z)))))), 6).
+
 	% C
-	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 6).
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 7).
 
 	% Unit
-	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 7).
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 8).
 
 	%%% / %%%

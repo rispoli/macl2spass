@@ -42,23 +42,26 @@ list_of_formulae(axioms).
 	% Closed modality
 	formula(forall([world(t), world(s), world(z), principal(a)], implies(and(leq(t, s), R(a, s, z)), R(a, t, z))), 5).
 
+	% Speaks for
+	formula(forall([world(x), world(y), principal(a), principal(b)], implies(implies(R(a, x, y), R(b, x, y)), forall([world(s), world(z)], implies(leq(x, s), implies(R(a, s, z), R(b, s, z)))))), 6).
+
 	% C
-	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 6).
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), R(a, y, y))), 7).
 
 	% Unit
-	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 7).
+	formula(forall([world(x), world(y), principal(a)], implies(R(a, x, y), leq(x, y))), 8).
 
 	%%% / %%%
 
-	formula(forall([world(w14)], implies(and(leq(0, w14), forall([world(w13)], implies(R(admin, w14, w13), I(df1, w13)))), I(df1, w14))), 8).
-	formula(forall([world(w17)], implies(R(admin, 0, w17), forall([world(w16)], implies(and(leq(w17, w16), forall([world(w15)], implies(R(bob, w16, w15), I(df1, w15)))), I(df1, w16))))), 9).
-	formula(forall([world(w18)], implies(R(bob, 0, w18), I(df1, w18))), 10).
+	formula(forall([world(w14)], implies(and(leq(0, w14), forall([world(w13)], implies(R(admin, w14, w13), I(df1, w13)))), I(df1, w14))), 9).
+	formula(forall([world(w17)], implies(R(admin, 0, w17), forall([world(w16)], implies(and(leq(w17, w16), forall([world(w15)], implies(R(bob, w16, w15), I(df1, w15)))), I(df1, w16))))), 10).
+	formula(forall([world(w18)], implies(R(bob, 0, w18), I(df1, w18))), 11).
 
 end_of_list.
 
 list_of_formulae(conjectures).
 
-	formula(I(df1, 0), 11).
+	formula(I(df1, 0), 12).
 
 end_of_list.
 
