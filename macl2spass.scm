@@ -1,4 +1,4 @@
-(module fsl2spass scheme
+(module macl2spass scheme
         (provide translate-file pretty-print-spass)
 
         (define *axioms-file* "axioms.dfg")
