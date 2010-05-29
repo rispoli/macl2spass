@@ -13,7 +13,7 @@
         |  C(<principle>, <expr>)
         |  <principle> => <principle>
 
-<expr-list> ::= <expr-list>. expr
+<expr-list> ::= <expr-list>. <expr>
              |  <expr>
              |  <expr-list>.
              |  _empty_list_
