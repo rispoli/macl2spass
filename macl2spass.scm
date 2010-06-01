@@ -107,21 +107,21 @@
             (gensym "w")))
 
         (define update-world
-		  (lambda (worlds assignment code)
-			(match-let (((list-rest new-world initial-world other-worlds) worlds))
-					   (letrec ((update-world-inner
-								  (lambda (code)
-									(cond
-									  ((or (eqv? code 'true) (eqv? code 'false)) code)
-									  ((eqv? (car code) assignment) `(,assignment ,(cadr code) ,new-world))
-									  (else
-										(case (car code)
-										  ((forall) `(forall ,(cadr code) ,(update-world (cons (cadr code) (cons new-world (cons initial-world other-worlds))) assignment (caddr code))))
-										  ((leq) `(leq ,initial-world ,new-world))
-										  ((not) `(not ,(update-world-inner (cadr code))))
-										  ((R) `(R ,(cadr code) ,initial-world ,new-world))
-										  (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
-						 (update-world-inner code)))))
+          (lambda (worlds assignment code)
+            (match-let (((list-rest new-world initial-world other-worlds) worlds))
+                       (letrec ((update-world-inner
+                                  (lambda (code)
+                                    (cond
+                                      ((or (eqv? code 'true) (eqv? code 'false)) code)
+                                      ((eqv? (car code) assignment) `(,assignment ,(cadr code) ,new-world))
+                                      (else
+                                        (case (car code)
+                                          ((forall) `(forall ,(cadr code) ,(update-world (cons (cadr code) (cons new-world (cons initial-world other-worlds))) assignment (caddr code))))
+                                          ((leq) `(leq ,initial-world ,new-world))
+                                          ((not) `(not ,(update-world-inner (cadr code))))
+                                          ((R) `(R ,(cadr code) ,initial-world ,new-world))
+                                          (else `(,(car code) ,(update-world-inner (cadr code)) ,(update-world-inner (caddr code))))))))))
+                         (update-world-inner code)))))
 
         (define translate
           (lambda (s assignment initial-world #:src-name (src-name "current-input-port"))
